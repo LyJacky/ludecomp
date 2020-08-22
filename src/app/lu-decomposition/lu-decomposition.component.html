@@ -1,0 +1,97 @@
+<div>
+  <input type="number" [(ngModel)]="dimension" (ngModelChange)="changeDimension()"/>
+</div>
+
+<div>
+  <table>
+    <tr *ngFor="let line of data.data; let idxLine = index; trackBy:indexTrackerLin">
+      <td *ngFor="let col of line; let idxCol = index; trackBy:indexTrackerCol">
+        <input type="number" [(ngModel)]="data.data[idxLine][idxCol]"/>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<button (click)="computeMat()">
+  Compute
+</button>
+
+<h5>Result</h5>
+
+<div *ngFor="let item of results">
+  <ng-container *ngIf="item.action == 'RequestParamForInfCase'">
+    <ng-container *ngTemplateOutlet="askParameter, context: {item: item}"></ng-container>
+  </ng-container>
+  <ng-container *ngIf="item.action == 'DisplayStep'">
+    <ng-container *ngIf="item.isMatrix()">
+      <ng-container *ngTemplateOutlet="displayMatrix, context: {item: item}"></ng-container>
+    </ng-container>
+    <ng-container *ngIf="item.isFractions()">
+      <ng-container *ngTemplateOutlet="displayFractions, context: {item: item}"></ng-container>
+    </ng-container>
+    <ng-container *ngIf="item.isNumber()">
+      <ng-container *ngTemplateOutlet="displayNumber, context: {item: item}"></ng-container>
+    </ng-container>
+  </ng-container>
+  <ng-container *ngIf="item.action == 'StopNoSolution'">
+    <ng-container *ngTemplateOutlet="noSolution, context: {item: item}"></ng-container>
+  </ng-container>
+
+</div>
+
+
+<ng-template #askParameter let-item="item">
+  <div>
+    {{item.msg}}
+  </div>
+  <div>
+    <input type="number" [(ngModel)]="item.inputParameter" [disabled]="item.inputParameterSubmited"/>
+  </div>
+  <button (click)="changeInputParameter(item)" *ngIf="!item.inputParameterSubmited && item.inputParameter">
+    Submit
+  </button>
+</ng-template>
+
+<ng-template #displayMatrix let-item="item">
+  <div>
+    {{item.msg}}
+  </div>
+  <table>
+    <tr *ngFor="let line of item.value.data; let idxLine = index">
+      <td *ngFor="let col of line; let idxCol = index">
+        {{item.value.data[idxLine][idxCol].numerator}}
+        <ng-container *ngIf="item.value.data[idxLine][idxCol].denominator != 1.0">
+        / {{item.value.data[idxLine][idxCol].denominator}}
+        </ng-container>
+      </td>
+    </tr>
+  </table>
+</ng-template>
+
+<ng-template #displayNumber let-item="item">
+  <div>
+    {{item.msg}}
+  </div>
+  <div>
+    {{item.value}}
+  </div>
+
+</ng-template>
+
+<ng-template #displayFractions let-item="item">
+  <div>
+    {{item.msg}}
+  </div>
+  <div>
+    {{item.value.numerator}}
+    <ng-container *ngIf="item.value.denominator != 1">
+      / {{item.value.denominator}}
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #noSolution let-item="item">
+  <div>
+    {{item.msg}}
+  </div>
+</ng-template>

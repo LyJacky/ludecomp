@@ -1,17 +1,20 @@
-import {Fractions, MatrixFraction, MatrixNumber} from '../lu-decomposition/lu-decomposition.component';
-import {Subject} from 'rxjs';
+import {Fractions, MatrixFraction, MatrixNumber, MatrixString} from '../lu-decomposition/lu-decomposition.component';
 import {EventEmitter} from '@angular/core';
 
 type EventData = {
-    action: 'RequestParamForInfCase' | 'DisplayStep' | 'StopNoSolution', msg: string, value: MatrixFraction | number | Fractions
+    action: 'RequestParamForInfCase' | 'DisplayStep' | 'StopNoSolution' | 'DisplaySolution',
+    msg: string,
+    value: MatrixFraction | number | Fractions | MatrixString;
+    requestMat?: MatrixString;
 };
 
 export class DisplayItem {
-    action: 'RequestParamForInfCase' | 'DisplayStep' | 'StopNoSolution';
+    action: 'RequestParamForInfCase' | 'DisplayStep' | 'StopNoSolution' | 'DisplaySolution';
     msg: string;
-    value: MatrixFraction | number | Fractions;
+    value: MatrixFraction | number | Fractions | MatrixString;
     inputParameter: number;
     inputParameterSubmited = false;
+    requestMat?: MatrixString = null;
 
     constructor(value: EventData) {
         this.action = value.action;
@@ -23,7 +26,9 @@ export class DisplayItem {
         } else {
             this.value = value.value;
         }
+        this.requestMat = value.requestMat;
     }
+
     isMatrix() {
         return this.value instanceof MatrixFraction;
     }
@@ -102,7 +107,6 @@ export class LuDecompService {
         return test;
     }
 
-
     constructor(private dim: number, private input: MatrixNumber) {
         this.fractionZero = new Fractions(0, 1);
         this.fractionInput = this.initDoubleArray(dim);
@@ -116,7 +120,7 @@ export class LuDecompService {
         // made fraction form of array c
         this.event.emit({
             action: 'DisplayStep',
-            msg: 'Fraction Upper',
+            msg: ' Upper',
             value: new MatrixFraction(this.fractionInput, this.dim)
         });
         const lower: number[][] = this.initDoubleArray(this.dim, 0);
@@ -128,8 +132,26 @@ export class LuDecompService {
         this.multiplier = new Fractions(1, 1);
     }
 
+
     addParameter(p: number) {
         this.parameters.push(p);
+    }
+
+    public infiniteString(xPos: number, yPos: number, fractionLower, infiniteSolString) {
+        for (let i = 0; i < this.dim; i++) {
+            for (let j = 0; j < this.dim; j++) {
+                if (xPos === j && yPos === i) {
+                    infiniteSolString.data[i][j] = 't';
+                } else {
+                    let fractionStr = fractionLower[i][j].numerator + ' / ' + fractionLower[i][j].denominator;
+                    if ( fractionLower[i][j].denominator === 1){
+                        fractionStr = fractionLower[i][j].numerator;
+                    }
+                    infiniteSolString.data[i][j] = fractionStr;
+                }
+            }
+        }
+        return infiniteSolString;
     }
 
     public compute(oldColPosition = 1) {
@@ -148,7 +170,7 @@ export class LuDecompService {
                         this.fractionLower[this.col + this.lin][this.lin].addingNoChange(this.multiplier);
                     this.event.emit({
                         action: 'DisplayStep',
-                        msg: 'Fraction Lower',
+                        msg: ' Lower',
                         value: new MatrixFraction(this.fractionLower, this.dim)
                     });
 
@@ -158,27 +180,31 @@ export class LuDecompService {
                         // System.out.println("please pick a parameterCompute for the matrix since there is infinite solutions");
                         //  parameterCompute = input.nextInt();
                         if (this.parameters[this.index] === undefined) {
+                            const mat = this.infiniteString(
+                                 this.lin,
+                                this.col + this.lin,
+                                this.fractionLower,
+                                new MatrixString(
+                                    this.initDoubleArray(this.dim), this.dim));
                             this.event.emit({
                                 action: 'RequestParamForInfCase',
-                                msg: 'Please Input Parameter',
-                                value: this.col
+                                msg: 'Please Input Parameter t ',
+                                value: this.col,
+                                requestMat: mat
+
                             });
                             return;
                         }
+
                         this.multiplier.numerator = this.parameters[this.index];
                         this.index++;
                         this.multiplier.denominator = 1;
-                        this.event.emit({
-                            action: 'DisplayStep',
-                            msg: 'Multiplier',
-                            value: this.multiplier
-                        });
                         this.fractionLower[this.col + this.lin][this.lin] =
                             this.fractionLower[this.col + this.lin][this.lin].addingNoChange(this.multiplier);
                         this.event.emit({
                             action: 'DisplayStep',
-                            msg: 'Fraction Lower',
-                            value: new MatrixFraction(this.fractionLower, this.dim)
+                            msg: 'Multiplier',
+                            value: this.multiplier
                         });
                     } else {
                         if (this.fractionInput[this.lin][this.lin].numerator === this.fractionZero.numerator
@@ -186,7 +212,7 @@ export class LuDecompService {
 
                             this.event.emit({
                                 action: 'StopNoSolution',
-                                msg: '',
+                                msg: 'No LU decomposition',
                                 value: null
                             });
                             return;
@@ -202,29 +228,26 @@ export class LuDecompService {
                 for (let j = this.lin; j < this.dim; j++) {
                     this.fractionInput[this.col + this.lin][j].subtracting(this.fractionCopy[j]);
                 }
-                this.event.emit({
-                    action: 'DisplayStep',
-                    msg: 'Fraction Upper',
-                    value: new MatrixFraction(this.fractionInput, this.dim)
-                });
+
             }
             // if resuming a compute, after the the resume set the column to start at 1
             oldColPosition = 1;
         }
         this.event.emit({
-            action: 'DisplayStep',
-            msg: 'Fraction Upper Final',
-            value: new MatrixFraction(this.fractionInput, this.dim)
-        });
-        this.event.emit({
-            action: 'DisplayStep',
-            msg: 'Fraction Lower Final',
+            action: 'DisplaySolution',
+            msg: ' Lower Final',
             value: new MatrixFraction(this.fractionLower, this.dim)
         });
+        this.event.emit({
+            action: 'DisplaySolution',
+            msg: ' Upper Final',
+            value: new MatrixFraction(this.fractionInput, this.dim)
+        });
+
         this.multiplyTwoMatrix(this.dim, this.fractionLower, this.fractionInput, this.fractionProduct);
         this.event.emit({
-            action: 'DisplayStep',
-            msg: 'Fraction Lower x Upper',
+            action: 'DisplaySolution',
+            msg: ' Lower x Upper',
             value: new MatrixFraction(this.fractionProduct, this.dim)
         });
 
@@ -241,6 +264,7 @@ export class LuDecompService {
         }
         return res;
     }
+
 
     private initArray(dim: number, value: any = null): any[] {
         const res = [];

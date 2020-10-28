@@ -1,9 +1,11 @@
 <div>
+  <h5>Enter the value n in an nxn matrix</h5>
   <input type="number" [(ngModel)]="dimension" (ngModelChange)="changeDimension()"/>
 </div>
 
 <div>
   <table>
+    <h5>Enter the matrix</h5>
     <tr *ngFor="let line of data.data; let idxLine = index; trackBy:indexTrackerLin">
       <td *ngFor="let col of line; let idxCol = index; trackBy:indexTrackerCol">
         <input type="number" [(ngModel)]="data.data[idxLine][idxCol]"/>
@@ -22,7 +24,7 @@
   <ng-container *ngIf="item.action == 'RequestParamForInfCase'">
     <ng-container *ngTemplateOutlet="askParameter, context: {item: item}"></ng-container>
   </ng-container>
-  <ng-container *ngIf="item.action == 'DisplayStep'">
+  <ng-container *ngIf="item.action == 'DisplaySolution'">
     <ng-container *ngIf="item.isMatrix()">
       <ng-container *ngTemplateOutlet="displayMatrix, context: {item: item}"></ng-container>
     </ng-container>
@@ -41,31 +43,46 @@
 
 
 <ng-template #askParameter let-item="item">
+  <ng-container *ngTemplateOutlet="displayStringMatrix, context: {item: item.requestMat}"></ng-container>
   <div>
     {{item.msg}}
   </div>
   <div>
-    <input type="number" [(ngModel)]="item.inputParameter" [disabled]="item.inputParameterSubmited"/>
+    <input type="number"  [(ngModel)]="item.inputParameter" [disabled]="item.inputParameterSubmited"/>
   </div>
-  <button (click)="changeInputParameter(item)" *ngIf="!item.inputParameterSubmited && item.inputParameter">
+  <button (click)="changeInputParameter(item)" *ngIf="!item.inputParameterSubmited && (item.inputParameter  || item.inputParameter == 0)">
     Submit
   </button>
 </ng-template>
 
 <ng-template #displayMatrix let-item="item">
   <div>
-    {{item.msg}}
+    {{item.action}}  - {{item.msg}}
   </div>
   <table>
     <tr *ngFor="let line of item.value.data; let idxLine = index">
       <td *ngFor="let col of line; let idxCol = index">
         {{item.value.data[idxLine][idxCol].numerator}}
         <ng-container *ngIf="item.value.data[idxLine][idxCol].denominator != 1.0">
-        / {{item.value.data[idxLine][idxCol].denominator}}
+          / {{item.value.data[idxLine][idxCol].denominator}}
         </ng-container>
       </td>
     </tr>
   </table>
+
+</ng-template>
+
+<ng-template #displayStringMatrix let-item="item">
+
+  <table>
+    <tr *ngFor="let line of item.data; let idxLine = index">
+      <td *ngFor="let col of line; let idxCol = index">
+        {{item.data[idxLine][idxCol]}}
+
+      </td>
+    </tr>
+  </table>
+
 </ng-template>
 
 <ng-template #displayNumber let-item="item">

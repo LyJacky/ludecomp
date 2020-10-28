@@ -31,6 +31,15 @@ export class MatrixNumber {
     }
 
 }
+export class MatrixString {
+    data: string[][];
+    dim: number;
+    constructor(data: string[][], dim: number) {
+        this.data = data;
+        this.dim = dim;
+    }
+
+}
 
 @Component({
     selector: 'app-lu-decomposition',
